@@ -5,9 +5,6 @@ build
 # Venv
 venv/
 
-# Dataset
-datasets/
-
 # Python chache
 __pycache__/
 .ipynb_checkpoints

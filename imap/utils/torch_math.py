@@ -2,15 +2,29 @@ import torch
 import torch.nn.functional
 
 
+def repeat_tensor(tensor, bins_count):
+    result = torch.repeat_interleave(tensor[None], bins_count, dim=0)
+    result = result.reshape(-1, *tensor.shape[1:])
+    return result
+
+
 def back_project_pixel(pixel, depth, camera_position, inverted_camera_matrix):
+    """
+    :param pixel: (batch_size, 2)
+    :param depth: (ray_depths, batch_size)
+    :param camera_position: [[R T],
+                             [0 1]]
+    :param inverted_camera_matrix: (3, 3)
+    :return: (batch_size, 3)
+    """
     batch_size = pixel.shape[0]
     inverted_camera_matrix = inverted_camera_matrix.to(pixel.device)
-    if len(inverted_camera_matrix.shape) != 3:
-        inverted_camera_matrix = torch.repeat_interleave(inverted_camera_matrix[None], batch_size, dim=0)
     homogeneous_pixel = torch.cat([pixel, torch.ones((batch_size, 1), device=pixel.device)], dim=1)
-    homogeneous_keypoints = inverted_camera_matrix @ homogeneous_pixel[:, :, None]
-    local_keypoints = (torch.nn.functional.normalize(homogeneous_keypoints, dim=1)) * depth[:, None, None]
-    result = (camera_position[:, :3, :3] @ local_keypoints + camera_position[:, :3, 3:4])[:, :, 0]
+    homogeneous_keypoints = torch.matmul(inverted_camera_matrix, homogeneous_pixel[:, :, None])
+    homogeneous_keypoints = repeat_tensor(homogeneous_keypoints, depth.shape[0])
+    local_keypoints = (torch.nn.functional.normalize(homogeneous_keypoints, dim=1)) * depth.reshape(-1)[:, None, None]
+    #local_keypoints = homogeneous_keypoints * depth.reshape(-1)[:, None, None]
+    result = (camera_position[:3, :3] @ local_keypoints + camera_position[:3, 3:4])[:, :, 0]
     return result
 
 

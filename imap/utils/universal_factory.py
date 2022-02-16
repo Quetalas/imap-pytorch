@@ -1,3 +1,4 @@
+import logging
 from inspect import signature
 
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -36,6 +37,10 @@ class UniversalFactory(object):
         def new_function(*args, **kwargs):
             parameter_names = signature(function).parameters.keys()
             right_kwargs = {}
+            for parameter_name in kwargs.keys():
+                if parameter_name not in parameter_names and parameter_name not in CLASS_NAME_ATTRIBUTES:
+                    logging.warning(f"[UniversalFactory] - {parameter_name} not "
+                                    f"in signature of function")
             for parameter_name in parameter_names:
                 if parameter_name in kwargs.keys():
                     right_kwargs[parameter_name] = kwargs[parameter_name]
