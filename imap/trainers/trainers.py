@@ -1,6 +1,8 @@
 import torch
 from tqdm.auto import tqdm, trange
 from imap.trainers.train_logger import TrainLogger
+from operator import itemgetter
+import numpy as np
 
 
 class ModelTrainer:
@@ -68,7 +70,7 @@ class ModelTrainer:
             model.cuda()
             current_position = None
             zero_state = None
-            states_array = []
+            states_array = []   # array to store key states
             for state_num, state in enumerate(tqdm(dataset_loader)):
                 if state_num == 0:  # train model
                     model.requires_grad_(True)
@@ -86,7 +88,8 @@ class ModelTrainer:
                     state.set_position(current_position)
 
                     states_array.append(state)
-                    states = states_array
+                    states = [state]
+                    states += list(itemgetter(*np.random.randint(len(states_array), size=5))(states_array))
 
                     opt_poses = []
                     for s in states:
